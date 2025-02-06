@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import csv
-import datetime
 import logging
 from typing import Annotated
 
@@ -17,7 +15,6 @@ from livekit.agents import (
 )
 from livekit.agents.multimodal import MultimodalAgent
 from livekit.plugins import openai
-from pydantic import BaseModel
 
 load_dotenv(dotenv_path=".env.local")
 logger = logging.getLogger("my-worker")
@@ -34,13 +31,6 @@ async def entrypoint(ctx: JobContext):
 
     logger.info("agent started")
 
-class QuestionAnswer(BaseModel):
-    question: Annotated[
-        str, llm.TypeInfo(description="The question asked to the user")
-    ]
-    answer: Annotated[
-        str, llm.TypeInfo(description="User answer to question")
-    ]
 
 # first define a class that inherits from llm.FunctionContext
 class AssistantFnc(llm.FunctionContext):
@@ -52,10 +42,6 @@ class AssistantFnc(llm.FunctionContext):
             user_name: Annotated[
                 str, llm.TypeInfo(description="Name given by the user. If wasn't given, use default - 'Anonim'")
             ],
-            # answers: Annotated[
-            #     list[QuestionAnswer], llm.TypeInfo(description="List of user's answers")
-            # ]
-            # by using the Annotated type, arg description and type are available to the LLM
             question: Annotated[
                 str, llm.TypeInfo(description="The question asked to the user")
             ],
@@ -64,42 +50,7 @@ class AssistantFnc(llm.FunctionContext):
             ],
     ):
         """Called to save answers to all users question to the database"""
-
-
-        # Create a filename based on username and today's date
-        date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-        filename = f"{user_name}_{date_str}.csv"
-
-        # Define CSV headers
-        headers = ["Timestamp", "Question", "Response"]
-
-        # Get current timestamp
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        # Write to CSV
-        try:
-            # Check if file exists to determine if headers are needed
-            file_exists = False
-            try:
-                with open(filename, "r", newline="") as file:
-                    file_exists = True
-            except FileNotFoundError:
-                pass
-
-            with open(filename, "a", newline="") as file:
-                writer = csv.writer(file)
-
-                # Write headers only if the file is new
-                if not file_exists:
-                    writer.writerow(headers)
-
-                # Write the response data
-                writer.writerow([timestamp, question, answer])
-
-            print(f"Response saved successfully to {filename}")
-
-        except Exception as e:
-            print(f"Error saving response: {e}")
+        print(f"Saving answers for {user_name} {question} {answer}")
 
 
 def run_multimodal_agent(ctx: JobContext, participant: rtc.RemoteParticipant):
